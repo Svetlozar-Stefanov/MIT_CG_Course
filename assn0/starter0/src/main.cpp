@@ -279,7 +279,6 @@ void updateCameraUniforms()
     M = M * M.rotateX((lastRot.y + rotation.y) * deg2rad(1.0f));
     M = M * Matrix4f::uniformScaling(scale);
     
-
     loc = glGetUniformLocation(program, "M");
     glUniformMatrix4fv(loc, 1, false, M);
 
@@ -293,8 +292,7 @@ void updateCameraUniforms()
 
 void updateMaterialUniforms()
 {
-    int loc = glGetUniformLocation(program, "ambientStrength");
-    glUniform1f(loc, ambientStrength);
+    int loc;
 
     // Here are some colors you might use - feel free to add more
     GLfloat diffColors[COLORS_COUNT][4] = { 
@@ -320,7 +318,7 @@ void updateMaterialUniforms()
 
     // Define specular color and shininess
     GLfloat specColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    GLfloat shininess[] = { 10.0f };
+    GLfloat shininess[] = { 256.0f };
 
     // Note that the specular color and shininess can stay constant
     loc = glGetUniformLocation(program, "specColor");
@@ -332,9 +330,9 @@ void updateMaterialUniforms()
 void updateLightUniforms()
 {
     // Light Position
-    GLfloat lightPos[] = { lightX, lightY, 5.0f, 1.0f };
+    GLfloat lightPos[] = { lightX, lightY, 5.0f};
     int loc = glGetUniformLocation(program, "lightPos");
-    glUniform4fv(loc, 1, lightPos);
+    glUniform3fv(loc, 1, lightPos);
 
     // Light Color
     GLfloat lightDiff[] = { 120.0, 120.0, 120.0, 1.0 };

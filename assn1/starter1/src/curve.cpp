@@ -1,5 +1,6 @@
 #include "curve.h"
 #include "vertexrecorder.h"
+#include "cmath"
 using namespace std;
 
 const float c_pi = 3.14159265358979323846f;
@@ -15,8 +16,16 @@ inline bool approx(const Vector3f& lhs, const Vector3f& rhs)
 }
 
 
+inline float binomialCoeficient(size_t n, size_t k) {
+	if (k == 0 || k == n)
+	{
+		return 1;
+	}
+
+	return binomialCoeficient(n - 1, k - 1) + binomialCoeficient(n - 1, k);
 }
 
+}
 
 Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 {
@@ -26,7 +35,6 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 		cerr << "evalBezier must be called with 3n+1 control points." << endl;
 		exit(0);
 	}
-
 	// TODO:
 	// You should implement this function so that it returns a Curve
 	// (e.g., a vector< CurvePoint >).  The variable "steps" tells you
@@ -44,6 +52,23 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	// receive have G1 continuity.  Otherwise, the TNB will not be
 	// be defined at points where this does not hold.
 
+	Curve curve;
+	float dist = 1.0f / steps;
+	for (float t = 0; t < 1; t += 0.05f)
+	{
+		CurvePoint newPoint;
+
+		size_t n = P.size() - 1;
+		for (int v = 0; v <= n; v++)
+		{
+			newPoint.V.x() = newPoint.V.x() + (binomialCoeficient(n, v) * (float)pow(t, v) * (float)pow(1 - t, n - v)) * P[v].x();
+			newPoint.V.y() = newPoint.V.y() + (binomialCoeficient(n, v) * (float)pow(t, v) * (float)pow(1 - t, n - v)) * P[v].y();
+			newPoint.V.z() = newPoint.V.z() + (binomialCoeficient(n, v) * (float)pow(t, v) * (float)pow(1 - t, n - v)) * P[v].z();
+		}
+
+		curve.push_back(newPoint);
+	}
+
 	cerr << "\t>>> evalBezier has been called with the following input:" << endl;
 
 	cerr << "\t>>> Control points (type vector< Vector3f >): " << endl;
@@ -56,7 +81,7 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	cerr << "\t>>> Returning empty curve." << endl;
 
 	// Right now this will just return this empty curve.
-	return Curve();
+	return curve;
 }
 
 Curve evalBspline(const vector< Vector3f >& P, unsigned steps)

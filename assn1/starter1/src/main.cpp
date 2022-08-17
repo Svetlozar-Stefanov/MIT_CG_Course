@@ -314,6 +314,10 @@ void initRendering()
 // loading fails, this will exit the program.
 void loadObjects(int argc, char *argv[])
 {
+    argc = 2;
+    char temp[] = "D:\\Projects\\3D CP Projects\\MIT_CG_Course\\assn1\\starter1\\swp\\core1.swp";
+    argv[1] = temp;
+
     if (argc < 2) {
         cerr << "usage: " << argv[0] << " SWPFILE [OBJPREFIX] " << endl;
         exit(0);

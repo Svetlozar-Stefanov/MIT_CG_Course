@@ -4,26 +4,35 @@
 using namespace std;
 
 const float c_pi = 3.14159265358979323846f;
+const Matrix4f BERNSTEIN_MATRIX = Matrix4f(Vector4f(1, 0, 0, 0),
+	Vector4f(-3, 3, 0, 0),
+	Vector4f(3, -6, 3, 0),
+	Vector4f(-1, 3, -3, 1));
+
+const Matrix4f HERMITE_MATRIX = Matrix4f(Vector4f(2, -3, 0, 1),
+	Vector4f(1, -2, 1, 0),
+	Vector4f(-2, 3, 0, 0),
+	Vector4f(1, -1, 0, 0));
 
 namespace
 {
-// Approximately equal to.  We don't want to use == because of
-// precision issues with floating point.
-inline bool approx(const Vector3f& lhs, const Vector3f& rhs)
-{
-	const float eps = 1e-8f;
-	return (lhs - rhs).absSquared() < eps;
-}
-
-
-inline float binomialCoeficient(size_t n, size_t k) {
-	if (k == 0 || k == n)
+	// Approximately equal to.  We don't want to use == because of
+	// precision issues with floating point.
+	inline bool approx(const Vector3f& lhs, const Vector3f& rhs)
 	{
-		return 1;
+		const float eps = 1e-8f;
+		return (lhs - rhs).absSquared() < eps;
 	}
 
-	return binomialCoeficient(n - 1, k - 1) + binomialCoeficient(n - 1, k);
-}
+
+	inline float binomialCoeficient(size_t n, size_t k) {
+		if (k == 0 || k == n)
+		{
+			return 1;
+		}
+
+		return binomialCoeficient(n - 1, k - 1) + binomialCoeficient(n - 1, k);
+	}
 
 }
 
@@ -57,14 +66,37 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	for (float t = 0; t < 1; t += 0.05f)
 	{
 		CurvePoint newPoint;
+		Matrix4f cpMatrix;
 
-		size_t n = P.size() - 1;
-		for (int v = 0; v <= n; v++)
+		for (int i = 0; i < 4; i++)
 		{
-			newPoint.V.x() = newPoint.V.x() + (binomialCoeficient(n, v) * (float)pow(t, v) * (float)pow(1 - t, n - v)) * P[v].x();
-			newPoint.V.y() = newPoint.V.y() + (binomialCoeficient(n, v) * (float)pow(t, v) * (float)pow(1 - t, n - v)) * P[v].y();
-			newPoint.V.z() = newPoint.V.z() + (binomialCoeficient(n, v) * (float)pow(t, v) * (float)pow(1 - t, n - v)) * P[v].z();
+			cpMatrix.setCol(i, Vector4f(P[i], 0));
 		}
+		Vector4f curvePoints = cpMatrix * BERNSTEIN_MATRIX * Vector4f(1, t, (float)pow(t, 2), (float)pow(t, 3));
+
+		Matrix4f tangentMatrix;
+		tangentMatrix.setCol(0, Vector4f(P[0], 0));
+		Vector3f temp;
+		for (int i = 0; i < 3; i++)
+		{
+			temp[i] = -3 * P[0][i] + 3 * P[1][i];
+		}
+		tangentMatrix.setCol(1, Vector4f(temp, 0).normalized());
+
+		tangentMatrix.setCol(2, Vector4f(P[3], 0));
+
+		for (int i = 0; i < 3; i++)
+		{
+			temp[i] = -3 * P[2][i] + 3 * P[3][i];
+		}
+		tangentMatrix.setCol(3, Vector4f(temp, 0).normalized());
+
+		Vector4f tangent = tangentMatrix * HERMITE_MATRIX.transposed() * Vector4f((float)pow(t, 3), (float)pow(t, 2), t , 1);
+
+		newPoint.V = curvePoints.xyz();
+		newPoint.V = tangent.xyz();
+
+
 
 		curve.push_back(newPoint);
 	}
@@ -159,7 +191,7 @@ void recordCurveFrames(const Curve& curve, VertexRecorder* recorder, float frame
 	const Vector3f RED(1, 0, 0);
 	const Vector3f GREEN(0, 1, 0);
 	const Vector3f BLUE(0, 0, 1);
-	
+
 	const Vector4f ORGN(0, 0, 0, 1);
 	const Vector4f AXISX(framesize, 0, 0, 1);
 	const Vector4f AXISY(0, framesize, 0, 1);
@@ -171,9 +203,9 @@ void recordCurveFrames(const Curve& curve, VertexRecorder* recorder, float frame
 		T.setCol(1, Vector4f(curve[i].B, 0));
 		T.setCol(2, Vector4f(curve[i].T, 0));
 		T.setCol(3, Vector4f(curve[i].V, 1));
- 
+
 		// Transform orthogonal frames into model space
-		Vector4f MORGN  = T * ORGN;
+		Vector4f MORGN = T * ORGN;
 		Vector4f MAXISX = T * AXISX;
 		Vector4f MAXISY = T * AXISY;
 		Vector4f MAXISZ = T * AXISZ;

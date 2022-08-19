@@ -60,6 +60,7 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	// be defined at points where this does not hold.
 
 	Curve curve;
+	Vector3f lastB = Vector3f(P[0].z(), 0, -P[0].x()).normalized();
 
 	Matrix4f cpMatrix;
 	for (int i = 0; i < 4; i++)
@@ -70,6 +71,7 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	Matrix4f tangentMatrix;
 	tangentMatrix.setRow(0, Vector4f(P[0], 0));
 	tangentMatrix.setRow(1, Vector4f(P[3], 0));
+
 	Vector3f tgnt;
 	for (int i = 0; i < 3; i++)
 	{
@@ -82,6 +84,7 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 		tgnt[i] = -3 * P[2][i] + 3 * P[3][i];
 	}
 	tangentMatrix.setRow(3, Vector4f(tgnt, 0));
+	Matrix4f coefficentMatrix = (HERMITE_MATRIX * tangentMatrix).transposed();
 
 	float dist = 1.0f / steps;
 	for (float t = 0; t < 1; t += dist)
@@ -92,12 +95,13 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 		Vector4f curvePoints = cpMatrix * BERNSTEIN_MATRIX * Vector4f(1, t, (float)pow(t, 2), (float)pow(t, 3));
 
 		//Tangents
-		Vector4f tangent = (HERMITE_MATRIX.transposed() * tangentMatrix) * Vector4f(3 * (float)pow(t, 2), 2 * t, 1, 0);
+		Vector4f tangent = coefficentMatrix * Vector4f(3 * (float)pow(t, 2), 2 * t, 1, 0);
 
 		newPoint.V = curvePoints.xyz();
 		newPoint.T = tangent.xyz().normalized();
-
-
+		newPoint.B = lastB;
+		newPoint.N = Vector3f::cross(newPoint.B, tangent.xyz()).normalized();
+		lastB = Vector3f::cross(tangent.xyz(), newPoint.N).normalized();
 
 		curve.push_back(newPoint);
 	}

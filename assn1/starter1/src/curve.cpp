@@ -10,8 +10,8 @@ const Matrix4f BERNSTEIN_MATRIX = Matrix4f(Vector4f(1, 0, 0, 0),
 	Vector4f(-1, 3, -3, 1));
 
 const Matrix4f HERMITE_MATRIX = Matrix4f(Vector4f(2, -3, 0, 1),
-	Vector4f(1, -2, 1, 0),
 	Vector4f(-2, 3, 0, 0),
+	Vector4f(1, -2, 1, 0),
 	Vector4f(1, -1, 0, 0));
 
 namespace
@@ -24,7 +24,6 @@ namespace
 		return (lhs - rhs).absSquared() < eps;
 	}
 
-
 	inline float binomialCoeficient(size_t n, size_t k) {
 		if (k == 0 || k == n)
 		{
@@ -33,7 +32,6 @@ namespace
 
 		return binomialCoeficient(n - 1, k - 1) + binomialCoeficient(n - 1, k);
 	}
-
 }
 
 Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
@@ -62,39 +60,42 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	// be defined at points where this does not hold.
 
 	Curve curve;
+
+	Matrix4f cpMatrix;
+	for (int i = 0; i < 4; i++)
+	{
+		cpMatrix.setCol(i, Vector4f(P[i], 0));
+	}
+
+	Matrix4f tangentMatrix;
+	tangentMatrix.setRow(0, Vector4f(P[0], 0));
+	tangentMatrix.setRow(1, Vector4f(P[3], 0));
+	Vector3f tgnt;
+	for (int i = 0; i < 3; i++)
+	{
+		tgnt[i] = -3 * P[0][i] + 3 * P[1][i];
+	}
+	tangentMatrix.setRow(2, Vector4f(tgnt, 0));
+
+	for (int i = 0; i < 3; i++)
+	{
+		tgnt[i] = -3 * P[2][i] + 3 * P[3][i];
+	}
+	tangentMatrix.setRow(3, Vector4f(tgnt, 0));
+
 	float dist = 1.0f / steps;
-	for (float t = 0; t < 1; t += 0.05f)
+	for (float t = 0; t < 1; t += dist)
 	{
 		CurvePoint newPoint;
-		Matrix4f cpMatrix;
-
-		for (int i = 0; i < 4; i++)
-		{
-			cpMatrix.setCol(i, Vector4f(P[i], 0));
-		}
+		
+		//Vertices
 		Vector4f curvePoints = cpMatrix * BERNSTEIN_MATRIX * Vector4f(1, t, (float)pow(t, 2), (float)pow(t, 3));
 
-		Matrix4f tangentMatrix;
-		tangentMatrix.setCol(0, Vector4f(P[0], 0));
-		Vector3f temp;
-		for (int i = 0; i < 3; i++)
-		{
-			temp[i] = -3 * P[0][i] + 3 * P[1][i];
-		}
-		tangentMatrix.setCol(1, Vector4f(temp, 0).normalized());
-
-		tangentMatrix.setCol(2, Vector4f(P[3], 0));
-
-		for (int i = 0; i < 3; i++)
-		{
-			temp[i] = -3 * P[2][i] + 3 * P[3][i];
-		}
-		tangentMatrix.setCol(3, Vector4f(temp, 0).normalized());
-
-		Vector4f tangent = tangentMatrix * HERMITE_MATRIX.transposed() * Vector4f((float)pow(t, 3), (float)pow(t, 2), t , 1);
+		//Tangents
+		Vector4f tangent = (HERMITE_MATRIX.transposed() * tangentMatrix) * Vector4f(3 * (float)pow(t, 2), 2 * t, 1, 0);
 
 		newPoint.V = curvePoints.xyz();
-		newPoint.V = tangent.xyz();
+		newPoint.T = tangent.xyz().normalized();
 
 
 

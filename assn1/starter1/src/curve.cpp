@@ -14,6 +14,13 @@ const Matrix4f HERMITE_MATRIX = Matrix4f(Vector4f(2, -3, 0, 1),
 	Vector4f(1, -2, 1, 0),
 	Vector4f(1, -1, 0, 0));
 
+const Matrix4f B_SPLINE_BASIS = Matrix4f(
+	1.0f, 4.0f, 1.0f, 0.0f,
+	-3.0f, 0.0f, 3.0f, 0.0f,
+	3.0f, -6.0f, 3.0f, 0.0f,
+	-1.0f, 3.0f, -3.0f, 1.0f
+).transposed() * (1.0f / 6.0f);
+
 namespace
 {
 	// Approximately equal to.  We don't want to use == because of
@@ -90,10 +97,8 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	for (float t = 0; t < 1; t += dist)
 	{
 		CurvePoint newPoint;
-		
 		//Vertices
 		Vector4f curvePoints = cpMatrix * BERNSTEIN_MATRIX * Vector4f(1, t, (float)pow(t, 2), (float)pow(t, 3));
-
 		//Tangents
 		Vector4f tangent = coefficentMatrix * Vector4f(3 * (float)pow(t, 2), 2 * t, 1, 0);
 
@@ -115,9 +120,6 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	}
 
 	cerr << "\t>>> Steps (type steps): " << steps << endl;
-	cerr << "\t>>> Returning empty curve." << endl;
-
-	// Right now this will just return this empty curve.
 	return curve;
 }
 
@@ -134,6 +136,18 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 	// It is suggested that you implement this function by changing
 	// basis from B-spline to Bezier.  That way, you can just call
 	// your evalBezier function.
+	Matrix4f cpMatrix;
+	for (int i = 0; i < 4; i++)
+	{
+		cpMatrix.setCol(i, Vector4f(P[i], 0));
+	}
+
+	Matrix4f bezierPointsMatrix = cpMatrix * B_SPLINE_BASIS * BERNSTEIN_MATRIX.inverse();
+	vector<Vector3f> points{
+		bezierPointsMatrix.getCol(0).xyz(),
+		bezierPointsMatrix.getCol(1).xyz(),
+		bezierPointsMatrix.getCol(2).xyz(),
+		bezierPointsMatrix.getCol(3).xyz() };
 
 	cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
 
@@ -144,10 +158,8 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 	}
 
 	cerr << "\t>>> Steps (type steps): " << steps << endl;
-	cerr << "\t>>> Returning empty curve." << endl;
 
-	// Return an empty curve right now.
-	return Curve();
+	return evalBezier(points, steps);
 }
 
 Curve evalCircle(float radius, unsigned steps)

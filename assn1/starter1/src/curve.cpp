@@ -67,7 +67,7 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	// be defined at points where this does not hold.
 
 	Curve curve;
-	Vector3f lastB = Vector3f(P[0].z(), 0, -P[0].x()).normalized();
+	Vector3f lastB = Vector3f::cross(P[0], Vector3f(P[0].x(), P[0].y() + 1, P[0].z())).normalized();
 
 	Matrix4f cpMatrix;
 	for (int i = 0; i < 4; i++)

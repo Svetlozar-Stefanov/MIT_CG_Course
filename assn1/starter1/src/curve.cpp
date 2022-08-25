@@ -41,54 +41,28 @@ namespace
 	}
 }
 
-Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
-{
-	// Check
-	if (P.size() < 4 || P.size() % 3 != 1)
-	{
-		cerr << "evalBezier must be called with 3n+1 control points." << endl;
-		exit(0);
-	}
-	// TODO:
-	// You should implement this function so that it returns a Curve
-	// (e.g., a vector< CurvePoint >).  The variable "steps" tells you
-	// the number of points to generate on each piece of the spline.
-	// At least, that's how the sample solution is implemented and how
-	// the SWP files are written.  But you are free to interpret this
-	// variable however you want, so long as you can control the
-	// "resolution" of the discretized spline curve with it.
-
-	// Make sure that this function computes all the appropriate
-	// Vector3fs for each CurvePoint: V,T,N,B.
-	// [NBT] should be unit and orthogonal.
-
-	// Also note that you may assume that all Bezier curves that you
-	// receive have G1 continuity.  Otherwise, the TNB will not be
-	// be defined at points where this does not hold.
-
+Curve evalFourPointBezier(const vector< Vector3f >& subP, unsigned steps, Vector3f& lastB) {
 	Curve curve;
-	Vector3f lastB = Vector3f::cross(P[0], Vector3f(P[0].x(), P[0].y() + 1, P[0].z())).normalized();
-
 	Matrix4f cpMatrix;
 	for (int i = 0; i < 4; i++)
 	{
-		cpMatrix.setCol(i, Vector4f(P[i], 0));
+		cpMatrix.setCol(i, Vector4f(subP[i], 0));
 	}
 
 	Matrix4f tangentMatrix;
-	tangentMatrix.setRow(0, Vector4f(P[0], 0));
-	tangentMatrix.setRow(1, Vector4f(P[3], 0));
+	tangentMatrix.setRow(0, Vector4f(subP[0], 0));
+	tangentMatrix.setRow(1, Vector4f(subP[3], 0));
 
 	Vector3f tgnt;
 	for (int i = 0; i < 3; i++)
 	{
-		tgnt[i] = -3 * P[0][i] + 3 * P[1][i];
+		tgnt[i] = -3 * subP[0][i] + 3 * subP[1][i];
 	}
 	tangentMatrix.setRow(2, Vector4f(tgnt, 0));
 
 	for (int i = 0; i < 3; i++)
 	{
-		tgnt[i] = -3 * P[2][i] + 3 * P[3][i];
+		tgnt[i] = -3 * subP[2][i] + 3 * subP[3][i];
 	}
 	tangentMatrix.setRow(3, Vector4f(tgnt, 0));
 	Matrix4f coefficentMatrix = (HERMITE_MATRIX * tangentMatrix).transposed();
@@ -109,6 +83,37 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 		lastB = Vector3f::cross(tangent.xyz(), newPoint.N).normalized();
 
 		curve.push_back(newPoint);
+	}
+	return curve;
+}
+
+Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
+{
+	// Check
+	if (P.size() < 4 || P.size() % 3 != 1)
+	{
+		cerr << "evalBezier must be called with 3n+1 control points." << endl;
+		exit(0);
+	}	
+
+	Curve curve;
+	Vector3f lastB = Vector3f::cross(P[0], Vector3f(P[0].x(), P[0].y() + 1, P[0].z())).normalized();
+
+	std::vector<Vector3f> subP;
+	for (int start = 0; start + 3 < P.size(); start+=3)
+	{
+		for (int offset = 0; offset < 4; offset++)
+		{
+			subP.push_back(P[start + offset]);
+		}
+		
+		Curve temp = evalFourPointBezier(subP, steps, lastB);
+		for (int i = 0; i < temp.size(); i++)
+		{
+			curve.push_back(temp[i]);
+		}
+
+		subP.clear();
 	}
 
 	cerr << "\t>>> evalBezier has been called with the following input:" << endl;
@@ -131,24 +136,36 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 		cerr << "evalBspline must be called with 4 or more control points." << endl;
 		exit(0);
 	}
-
-	// TODO:
-	// It is suggested that you implement this function by changing
-	// basis from B-spline to Bezier.  That way, you can just call
-	// your evalBezier function.
-	Matrix4f cpMatrix;
-	for (int i = 0; i < 4; i++)
+	Curve bSplineCurve;
+	vector<Vector3f> pointsInBernstein;
+	Vector3f lastB;
+	for (int start = 0; start + 4 <= P.size(); start++)
 	{
-		cpMatrix.setCol(i, Vector4f(P[i], 0));
+		Matrix4f cpMatrix;
+		for (int i = 0; i < 4; i++)
+		{
+			cpMatrix.setCol(i, Vector4f(P[start + i], 0));
+		}
+		Matrix4f points = cpMatrix * B_SPLINE_BASIS * BERNSTEIN_MATRIX.inverse();
+		for (int i = 0; i < 4; i++)
+		{
+			pointsInBernstein.push_back(points.getCol(i).xyz());
+		}
+
+		if (start == 0)
+		{
+			lastB = Vector3f::cross(pointsInBernstein[0],
+				Vector3f(pointsInBernstein[0].x(), pointsInBernstein[0].y() + 1, pointsInBernstein[0].z())).normalized();
+		}
+		
+		Curve curvePortion = evalFourPointBezier(pointsInBernstein, steps, lastB);
+		for (int i = 0; i < curvePortion.size(); i++)
+		{
+			bSplineCurve.push_back(curvePortion[i]);
+		}
+		pointsInBernstein.clear();
 	}
-
-	Matrix4f bezierPointsMatrix = cpMatrix * B_SPLINE_BASIS * BERNSTEIN_MATRIX.inverse();
-	vector<Vector3f> points{
-		bezierPointsMatrix.getCol(0).xyz(),
-		bezierPointsMatrix.getCol(1).xyz(),
-		bezierPointsMatrix.getCol(2).xyz(),
-		bezierPointsMatrix.getCol(3).xyz() };
-
+	
 	cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
 
 	cerr << "\t>>> Control points (type vector< Vector3f >): " << endl;
@@ -159,7 +176,7 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 
 	cerr << "\t>>> Steps (type steps): " << steps << endl;
 
-	return evalBezier(points, steps);
+	return bSplineCurve;
 }
 
 Curve evalCircle(float radius, unsigned steps)
@@ -238,4 +255,3 @@ void recordCurveFrames(const Curve& curve, VertexRecorder* recorder, float frame
 		recorder->record_poscolor(MAXISZ.xyz(), BLUE);
 	}
 }
-

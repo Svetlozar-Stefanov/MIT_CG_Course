@@ -315,7 +315,7 @@ void initRendering()
 void loadObjects(int argc, char *argv[])
 {
     argc = 2;
-    char temp[] = "D:\\Projects\\3D CP Projects\\MIT_CG_Course\\assn1\\starter1\\swp\\core.swp";
+    char temp[] = "D:\\Projects\\3D CP Projects\\MIT_CG_Course\\assn1\\starter1\\swp\\florus.swp";
     argv[1] = temp;
 
     if (argc < 2) {

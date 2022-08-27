@@ -4,7 +4,7 @@ using namespace std;
 
 namespace
 {
-    
+    const float c_pi = 3.14159265358979323846f;
     // We're only implenting swept surfaces where the profile curve is
     // flat on the xy-plane.  This is a check function.
     static bool checkFlat(const Curve &profile)
@@ -40,7 +40,7 @@ Surface quad() {
 Surface makeSurfRev(const Curve &profile, unsigned steps)
 {
     Surface surface;
-	surface = quad();
+	//surface = quad();
     
     if (!checkFlat(profile))
     {
@@ -48,9 +48,32 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
         exit(0);
     }
 
-    // TODO: Here you should build the surface.  See surf.h for details.
+    float rotStep = (360.0f / steps);
+    float rotDeg = rotStep;
 
-    cerr << "\t>>> makeSurfRev called (but not implemented).\n\t>>> Returning empty surface." << endl;
+    for (int n = 0; n < profile.size(); n++)
+    {
+           Vector4f vec = Matrix4f(Vector4f(1, 0, 0, 0),
+            Vector4f(0, 1, 0, 0),
+            Vector4f(0, 0, 1, 0),
+            Vector4f(profile[n].V.xyz(), 1)) *
+            Matrix4f::rotateY(2 * c_pi * (rotDeg / 360.0f)) * 
+            Matrix4f(Vector4f(1, 0, 0, 0),
+            Vector4f(0, 1, 0, 0),
+            Vector4f(0, 0, 1, 0),
+            Vector4f(-profile[n].V.xyz(), 1)) * Vector4f(profile[n].V.x(), 0, profile[n].V.z(), 1);
+
+        surface.VV.push_back(vec.xyz());
+        rotDeg += rotStep;
+
+        surface.VF.push_back(Tup3u(0, 1, 2));
+        surface.VN.push_back(Vector3f(0, 0, 1));
+    }
+    
+
+    //// TODO: Here you should build the surface.  See surf.h for details.
+
+    //cerr << "\t>>> makeSurfRev called (but not implemented).\n\t>>> Returning empty surface." << endl;
  
     return surface;
 }

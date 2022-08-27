@@ -87,6 +87,18 @@ Curve evalFourPointBezier(const vector< Vector3f >& subP, unsigned steps, Vector
 	return curve;
 }
 
+Vector3f getB(Vector3f p)
+{
+	Vector3f B = Vector3f::cross(p, Vector3f(p.x() + 1, p.y() + 1, p.z())).normalized();
+
+	if (p.x() < 0)
+	{
+		B *= -1;
+	}
+
+	return B;
+}
+
 Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 {
 	// Check
@@ -94,19 +106,20 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 	{
 		cerr << "evalBezier must be called with 3n+1 control points." << endl;
 		exit(0);
-	}	
+	}
 
 	Curve curve;
-	Vector3f lastB = Vector3f::cross(P[0], Vector3f(P[0].x(), P[0].y() + 1, P[0].z())).normalized();
+
+	Vector3f lastB = getB(P[0]);
 
 	std::vector<Vector3f> subP;
-	for (int start = 0; start + 3 < P.size(); start+=3)
+	for (int start = 0; start + 3 < P.size(); start += 3)
 	{
 		for (int offset = 0; offset < 4; offset++)
 		{
 			subP.push_back(P[start + offset]);
 		}
-		
+
 		Curve temp = evalFourPointBezier(subP, steps, lastB);
 		for (int i = 0; i < temp.size(); i++)
 		{
@@ -154,10 +167,9 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 
 		if (start == 0)
 		{
-			lastB = Vector3f::cross(pointsInBernstein[0],
-				Vector3f(pointsInBernstein[0].x(), pointsInBernstein[0].y() + 1, pointsInBernstein[0].z())).normalized();
+			lastB = getB(pointsInBernstein[0]);
 		}
-		
+
 		Curve curvePortion = evalFourPointBezier(pointsInBernstein, steps, lastB);
 		for (int i = 0; i < curvePortion.size(); i++)
 		{
@@ -165,7 +177,7 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 		}
 		pointsInBernstein.clear();
 	}
-	
+
 	cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
 
 	cerr << "\t>>> Control points (type vector< Vector3f >): " << endl;

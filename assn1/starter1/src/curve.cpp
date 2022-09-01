@@ -41,6 +41,26 @@ namespace
 	}
 }
 
+Vector3f getB(Vector3f p)
+{
+	Vector3f zero(0, 0, 0);
+	Vector3f B(0, 0, 1);
+	if (approx(zero, Vector3f::cross(p, B)))
+	{
+		B = Vector3f(1, 0, 0);
+	}
+	if (approx(zero, Vector3f::cross(p, B)))
+	{
+		B = Vector3f(0, 1, 0);
+	}
+	if (approx(zero, Vector3f::cross(p, B)))
+	{
+		B = Vector3f(0, 0, 0);
+	}
+
+	return B.normalized();
+}
+
 Curve evalFourPointBezier(const vector< Vector3f >& subP, unsigned steps, Vector3f& lastB) {
 	Curve curve;
 	Matrix4f cpMatrix;
@@ -67,9 +87,9 @@ Curve evalFourPointBezier(const vector< Vector3f >& subP, unsigned steps, Vector
 	tangentMatrix.setRow(3, Vector4f(tgnt, 0));
 	Matrix4f coefficentMatrix = (HERMITE_MATRIX * tangentMatrix).transposed();
 
-	float dist = 1.0f / steps;
-	for (float t = 0; t < 1; t += dist)
+	for (float i = 0; i <= steps; i++)
 	{
+		float t = i / steps;
 		CurvePoint newPoint;
 		//Vertices
 		Vector4f curvePoints = cpMatrix * BERNSTEIN_MATRIX * Vector4f(1, t, (float)pow(t, 2), (float)pow(t, 3));
@@ -78,25 +98,19 @@ Curve evalFourPointBezier(const vector< Vector3f >& subP, unsigned steps, Vector
 
 		newPoint.V = curvePoints.xyz();
 		newPoint.T = tangent.xyz().normalized();
-		newPoint.B = lastB;
-		newPoint.N = Vector3f::cross(newPoint.B, tangent.xyz()).normalized();
-		lastB = Vector3f::cross(tangent.xyz(), newPoint.N).normalized();
+
+		if (approx(lastB, Vector3f(0,0,0)) || approx(Vector3f::cross(newPoint.T, lastB), Vector3f(0, 0, 0)))
+		{
+			lastB = getB(newPoint.T.normalized());
+		}
+
+		newPoint.N = Vector3f::cross(lastB, newPoint.T).normalized();
+		newPoint.B = Vector3f::cross(newPoint.T, newPoint.N).normalized();
+		lastB = newPoint.B;
 
 		curve.push_back(newPoint);
 	}
 	return curve;
-}
-
-Vector3f getB(Vector3f p)
-{
-	Vector3f B = Vector3f::cross(p, Vector3f(p.x() + 1, p.y() + 1, p.z())).normalized();
-
-	if (p.x() < 0)
-	{
-		B *= -1;
-	}
-
-	return B;
 }
 
 Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
@@ -110,10 +124,10 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 
 	Curve curve;
 
-	Vector3f lastB = getB(P[0]);
+	Vector3f lastB(0,0,0);
 
 	std::vector<Vector3f> subP;
-	for (int start = 0; start + 3 < P.size(); start += 3)
+	for (int start = 0; start < P.size() - 3; start += 3)
 	{
 		for (int offset = 0; offset < 4; offset++)
 		{
@@ -149,10 +163,11 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 		cerr << "evalBspline must be called with 4 or more control points." << endl;
 		exit(0);
 	}
+
 	Curve bSplineCurve;
 	vector<Vector3f> pointsInBernstein;
-	Vector3f lastB;
-	for (int start = 0; start + 4 <= P.size(); start++)
+	Vector3f lastB(0,0,0);
+	for (int start = 0; start <= P.size() - 4; start++)
 	{
 		Matrix4f cpMatrix;
 		for (int i = 0; i < 4; i++)
@@ -165,18 +180,30 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 			pointsInBernstein.push_back(points.getCol(i).xyz());
 		}
 
-		if (start == 0)
+		Curve curvePortion = evalFourPointBezier(pointsInBernstein, steps, lastB);
+		if (start == P.size() - 4)
 		{
-			lastB = getB(pointsInBernstein[0]);
+			for (int i = 0; i < curvePortion.size(); i++)
+			{
+				bSplineCurve.push_back(curvePortion[i]);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < curvePortion.size() - 1; i++)
+			{
+				bSplineCurve.push_back(curvePortion[i]);
+			}
 		}
 
-		Curve curvePortion = evalFourPointBezier(pointsInBernstein, steps, lastB);
-		for (int i = 0; i < curvePortion.size(); i++)
-		{
-			bSplineCurve.push_back(curvePortion[i]);
-		}
+		
 		pointsInBernstein.clear();
 	}
+
+	/*if (approx(bSplineCurve[0].V, bSplineCurve[bSplineCurve.size() - 1].V))
+	{
+		bSplineCurve[0] = bSplineCurve[bSplineCurve.size() - 1];
+	}*/
 
 	cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
 

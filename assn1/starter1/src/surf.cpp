@@ -37,7 +37,45 @@ Surface quad() {
 	return ret;
 }
 
-Surface makeSurfRev(const Curve& profile, unsigned steps)
+void connectVert(int s, int profDotCount, int numberOfCopies, Surface& surface) 
+{
+	if (s > 0)
+	{
+		for (int n = 1; n < profDotCount; n++)
+		{
+			int p1 = (s * profDotCount) + n;
+
+			int p2 = s * profDotCount + n - 1;
+			int p3 = (s - 1) * profDotCount + n - 1;
+
+			surface.VF.push_back(Tup3u(p1, p2, p3));
+
+			p2 = p3;
+			p3 = (s - 1) * profDotCount + n;
+
+			surface.VF.push_back(Tup3u(p1, p2, p3));
+		}
+	}
+	if (s == numberOfCopies - 1)
+	{
+		for (int n = 1; n < profDotCount; n++)
+		{
+			int p1 = n;
+
+			int p2 = n - 1;
+			int p3 = s * profDotCount + n - 1;
+
+			surface.VF.push_back(Tup3u(p1, p2, p3));
+
+			p2 = p3;
+			p3 = s * profDotCount + n;
+
+			surface.VF.push_back(Tup3u(p1, p2, p3));
+		}
+	}
+}
+
+Surface makeSurfRev(const Curve& profile, unsigned steps) 
 {
 	Surface surface;
 	//surface = quad();
@@ -63,46 +101,8 @@ Surface makeSurfRev(const Curve& profile, unsigned steps)
 			surface.VN.push_back(-(nRotMatrix * profile[n].N).normalized());
 		}
 
-		if (s > 0)
-		{
-			for (int n = 0; n < profDotCount - 1; n++)
-			{
-				int p1 = (s * profDotCount) + n;
-
-				int p2 = (s - 1) * profDotCount + n;
-				int p3 = (s - 1) * profDotCount + n + 1;
-
-				surface.VF.push_back(Tup3u(p1, p2, p3));
-
-				p2 = (s - 1) * profDotCount + n + 1;
-				p3 = s * profDotCount + n + 1;
-
-				surface.VF.push_back(Tup3u(p1, p2, p3));
-			}
-		}
+		connectVert(s, profDotCount, steps, surface);
 	}
-
-
-	/*for (int i = 0; i < 30; i++)
-	{
-		for (unsigned j = 1; j <= steps; j++)
-		{
-			int p1 = i * steps + j;
-
-			int p2;
-			int p3;
-
-			p2 = p1 - 1;
-			p3 = (1 + i) * steps + p2;
-
-			surface.VF.push_back(Tup3u(p1, p2, p3));
-
-			p2 = (1 + i) * steps + j - 1;
-			p3 = (1 + i) * steps + p1;
-
-			surface.VF.push_back(Tup3u(p1, p2, p3));
-		}
-	}*/
 
 	return surface;
 }
@@ -110,7 +110,7 @@ Surface makeSurfRev(const Curve& profile, unsigned steps)
 Surface makeGenCyl(const Curve& profile, const Curve& sweep)
 {
 	Surface surface;
-	surface = quad();
+	//surface = quad();
 
 	if (!checkFlat(profile))
 	{
@@ -118,9 +118,25 @@ Surface makeGenCyl(const Curve& profile, const Curve& sweep)
 		exit(0);
 	}
 
-	// TODO: Here you should build the surface.  See surf.h for details.
+	int swPointsCount = (int)sweep.size();
+	int profDotCount = (int)profile.size();
+	for (int s = 0; s < swPointsCount; s++)
+	{
+		CurvePoint sweepPoint = sweep[s];
 
-	cerr << "\t>>> makeGenCyl called (but not implemented).\n\t>>> Returning empty surface." << endl;
+		Matrix3f transformMtrx;
+		transformMtrx.setCol(0, sweepPoint.N);
+		transformMtrx.setCol(1, sweepPoint.B);
+		transformMtrx.setCol(2,	sweepPoint.T);
+
+		for (int n = 0; n < profDotCount; n++)
+		{
+ 			surface.VV.push_back((transformMtrx * profile[n].V) + sweepPoint.V);
+			surface.VN.push_back(-(transformMtrx.inverse().transposed() * profile[n].N));
+		}
+
+		connectVert(s, profDotCount, swPointsCount, surface);
+	}
 
 	return surface;
 }

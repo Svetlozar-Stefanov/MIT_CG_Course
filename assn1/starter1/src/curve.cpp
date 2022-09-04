@@ -58,7 +58,7 @@ Vector3f getB(Vector3f p)
 		B = Vector3f(0, 0, 0);
 	}
 
-	return B.normalized();
+	return B;
 }
 
 Curve evalFourPointBezier(const vector< Vector3f >& subP, unsigned steps, Vector3f& lastB) {
@@ -99,9 +99,9 @@ Curve evalFourPointBezier(const vector< Vector3f >& subP, unsigned steps, Vector
 		newPoint.V = curvePoints.xyz();
 		newPoint.T = tangent.xyz().normalized();
 
-		if (approx(lastB, Vector3f(0,0,0)) || approx(Vector3f::cross(newPoint.T, lastB), Vector3f(0, 0, 0)))
+		if (approx(lastB, Vector3f(0, 0, 0)) || approx(Vector3f::cross(newPoint.T, lastB), Vector3f(0, 0, 0)))
 		{
-			lastB = getB(newPoint.T.normalized());
+			lastB = getB(newPoint.T);
 		}
 
 		newPoint.N = Vector3f::cross(lastB, newPoint.T).normalized();
@@ -124,7 +124,7 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 
 	Curve curve;
 
-	Vector3f lastB(0,0,0);
+	Vector3f lastB(0, 0, 0);
 
 	std::vector<Vector3f> subP;
 	for (int start = 0; start < P.size() - 3; start += 3)
@@ -166,7 +166,7 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 
 	Curve bSplineCurve;
 	vector<Vector3f> pointsInBernstein;
-	Vector3f lastB(0,0,0);
+	Vector3f lastB(0, 0, 0);
 	for (int start = 0; start <= P.size() - 4; start++)
 	{
 		Matrix4f cpMatrix;
@@ -196,14 +196,28 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 			}
 		}
 
-		
 		pointsInBernstein.clear();
 	}
 
-	/*if (approx(bSplineCurve[0].V, bSplineCurve[bSplineCurve.size() - 1].V))
+	int curveSize = (int)bSplineCurve.size();
+	if (approx(bSplineCurve[0].V, bSplineCurve[curveSize - 1].V)
+		&& approx(bSplineCurve[0].T, bSplineCurve[curveSize - 1].T)
+		&& !approx(bSplineCurve[0].N, bSplineCurve[curveSize - 1].N))
 	{
-		bSplineCurve[0] = bSplineCurve[bSplineCurve.size() - 1];
-	}*/
+		CurvePoint beg = bSplineCurve[0];
+		CurvePoint end = bSplineCurve[curveSize - 1];
+
+		float diff = acos(Vector3f::dot(end.N, beg.N));
+
+		for (int i = 0; i < curveSize-1; i++)
+		{
+			CurvePoint point = bSplineCurve[i];
+			float angle = diff * ((float)(curveSize - i) / curveSize);
+
+			bSplineCurve[i].N = Matrix3f::rotation(point.T, angle) * point.N;
+			bSplineCurve[i].B = Matrix3f::rotation(point.T, angle) * point.B;
+		}
+	}
 
 	cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
 

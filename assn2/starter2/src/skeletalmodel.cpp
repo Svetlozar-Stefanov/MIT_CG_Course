@@ -141,6 +141,7 @@ void SkeletalModel::loadSkeleton(const char* filename)
         if (index == -1)
         {
             newJoint->transform = Matrix4f::translation(transform);
+            newJoint->originalTransform = Matrix4f::translation(transform);
             m_rootJoint = newJoint;
             m_joints.push_back(newJoint);
             continue;
@@ -149,6 +150,7 @@ void SkeletalModel::loadSkeleton(const char* filename)
         Joint* parent = m_joints[index];
         
         newJoint->transform = Matrix4f::translation(transform);
+        newJoint->originalTransform = Matrix4f::translation(transform);
         parent->children.push_back(newJoint);
         m_joints.push_back(newJoint);
     }
@@ -173,25 +175,52 @@ void SkeletalModel::drawJoints(const Camera& camera)
     DrawJoint(m_rootJoint, camera);
 }
 
+void SkeletalModel::DrawBones(const Joint* parent, const Camera& camera)
+{
+    m_matrixStack.push(parent->transform);
+    for (int i = 0; i < parent->children.size(); i++)
+    {
+        Joint* child = parent->children[i];
+
+        Vector3f loc = child->transform.getCol(3).xyz();
+        Vector3f dir = loc.normalized();
+        Matrix4f M = m_matrixStack.top();
+
+        Vector3f cyl(0,1,0);
+
+        float degree = acos(Vector3f::dot(cyl, dir));
+        Vector3f rotDir = Vector3f::cross(cyl, dir).normalized();
+
+        Matrix4f rotM = Matrix4f::rotation(rotDir, degree);
+
+        M = M * rotM;
+
+        camera.SetUniforms(program, M);
+        float length = loc.abs();
+        drawCylinder(6, 0.02f, length);
+
+        DrawBones(child, camera);
+    }
+
+    m_matrixStack.pop();
+}
+
 void SkeletalModel::drawSkeleton(const Camera& camera)
 {
-    // Draw cylinders between the joints. You will need to add a recursive 
-    // helper function to traverse the joint hierarchy.
-    //
-    // We recommend using drawCylinder(6, 0.02f, <height>);
-    // to draw a cylinder of reasonable diameter.
-
-    // you can use the stack with push/pop like this
-    // m_matrixStack.push(Matrix4f::translation(+0.6f, +0.5f, -0.5f))
-    // camera.SetUniforms(program, m_matrixStack.top());
-    // drawCylinder(6, 0.02f, 0.2f);
-    // callChildFunction();
-    // m_matrixStack.pop();
+    DrawBones(m_rootJoint, camera);
 }
 
 void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float rZ)
 {
     // Set the rotation part of the joint's transformation matrix based on the passed in Euler angles.
+
+    Joint* joint = m_joints[jointIndex];
+
+    Matrix4f rotX = Matrix4f::rotateX(rX);
+    Matrix4f rotY = Matrix4f::rotateY(rY);
+    Matrix4f rotZ = Matrix4f::rotateZ(rZ);
+
+    joint->transform = joint->originalTransform * rotX * rotY * rotZ;
 }
 
 void SkeletalModel::computeBindWorldToJointTransforms()

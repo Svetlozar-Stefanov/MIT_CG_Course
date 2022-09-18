@@ -110,7 +110,7 @@ void SkeletalModel::loadSkeleton(const char* filename)
     ifstream file(filename);
     if (!file.is_open())
     {   
-        std::cout << "File not found: " << filename;
+        std::cout << "File not found: \n" << filename;
         return;
     }
 
@@ -124,8 +124,7 @@ void SkeletalModel::loadSkeleton(const char* filename)
 
         if (data.size() != 4)
         {
-            std::cout << "Invalid file format";
-            return;
+            continue;
         }
 
         Vector3f transform;

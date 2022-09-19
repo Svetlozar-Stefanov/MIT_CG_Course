@@ -130,7 +130,7 @@ void Mesh::loadAttachments( const char* filename, int numJoints )
 
 		vector<string> data = parse(buffer, ' ');
 
-		if (data.size() != numJoints)
+		if (data.size() != numJoints - 1)
 		{
 			continue;
 		}

@@ -222,6 +222,17 @@ void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float 
     joint->transform = joint->originalTransform * rotX * rotY * rotZ;
 }
 
+void SkeletalModel::computeBindWorldToJointTransform(Joint* joint)
+{
+    m_matrixStack.push(joint->originalTransform);
+    joint->bindWorldToJointTransform = m_matrixStack.top();
+    for (Joint* child : joint->children) 
+    {
+        computeBindWorldToJointTransform(child);
+    }
+    m_matrixStack.pop();
+}
+
 void SkeletalModel::computeBindWorldToJointTransforms()
 {
     // 2.3.1. Implement this method to compute a per-joint transform from
@@ -232,7 +243,19 @@ void SkeletalModel::computeBindWorldToJointTransforms()
     //
     // This method should update each joint's bindWorldToJointTransform.
     // You will need to add a recursive helper function to traverse the joint hierarchy.
+    computeBindWorldToJointTransform(m_rootJoint);
 
+}
+
+void SkeletalModel::updateCurrentJointToWorldTransform(Joint* joint)
+{
+    m_matrixStack.push(joint->transform);
+    joint->currentJointToWorldTransform = m_matrixStack.top();
+    for (Joint* child : joint->children)
+    {
+        updateCurrentJointToWorldTransform(child);
+    }
+    m_matrixStack.pop();
 }
 
 void SkeletalModel::updateCurrentJointToWorldTransforms()
@@ -245,7 +268,7 @@ void SkeletalModel::updateCurrentJointToWorldTransforms()
     //
     // This method should update each joint's currentJointToWorldTransform.
     // You will need to add a recursive helper function to traverse the joint hierarchy.
-
+    updateCurrentJointToWorldTransform(m_rootJoint);
 }
 
 void SkeletalModel::updateMesh()
@@ -255,5 +278,19 @@ void SkeletalModel::updateMesh()
     // given the current state of the skeleton.
     // You will need both the bind pose world --> joint transforms.
     // and the current joint --> world transforms.
+    for (int i = 0; i < m_mesh.bindVertices.size(); i++)
+    {
+        m_mesh.currentVertices[i] = Vector3f(0, 0, 0);
+        for (int j = 0; j < m_joints.size(); j++)
+        {
+            Joint* joint = m_joints[j];
+
+            float weight = m_mesh.attachments[i][j];
+            Matrix4f T = joint->currentJointToWorldTransform;
+            Matrix4f B = joint->bindWorldToJointTransform;
+
+            m_mesh.currentVertices[i] += (weight * T * (B.inverse() * Vector4f(m_mesh.bindVertices[i], 1))).xyz();
+        }
+    }
 }
 

@@ -371,7 +371,7 @@ void freeSkeleton() {
 int main(int argc, char** argv)
 {   
     argc = 2;
-    char model[] = "data/Model1";
+    char model[] = "data/Model4";
     argv[1] = model;
     if (argc < 2)
     {

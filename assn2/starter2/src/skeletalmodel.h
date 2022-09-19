@@ -74,6 +74,10 @@ private:
     void DrawJoint(const Joint* joint,const Camera& camera);
 
     void DrawBones(const Joint* parent, const Camera& camera);
+
+    void computeBindWorldToJointTransform(Joint* joint);
+
+    void updateCurrentJointToWorldTransform(Joint* joint);
 };
 
 #endif

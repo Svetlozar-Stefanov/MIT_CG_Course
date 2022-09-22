@@ -45,13 +45,13 @@ void SimpleSystem::draw(GLProgram& gl)
 	//           GLProgram is a helper object that has
 	//           methods to set the uniform state.
 
-	const Vector3f PARTICLE_COLOR(0.4f, 0.7f, 1.0f);
+	/*const Vector3f PARTICLE_COLOR(0.4f, 0.7f, 1.0f);
 	gl.updateMaterial(PARTICLE_COLOR);
 	for (int i = 0; i < m_vVecState.size(); i++)
 	{
 		Vector3f pos = m_vVecState[i];
 		gl.updateModelMatrix(Matrix4f::translation(pos));
 		drawSphere(0.075f, 10, 10);
-	}
+	}*/
 }
 

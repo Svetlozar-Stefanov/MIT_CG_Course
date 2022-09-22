@@ -9,6 +9,19 @@
 // helper for uniform distribution
 float rand_uniform(float low, float hi);
 
+struct Spring {
+    float restLen;
+    float sturdiness;
+    int index;
+};
+
+struct Particle {
+    Vector3f pos;
+    Vector3f vel;
+    float mass;
+    std::vector<Spring> springs;
+};
+
 struct GLProgram;
 class ParticleSystem
 {
@@ -19,10 +32,10 @@ public:
     virtual std::vector<Vector3f> evalF(std::vector<Vector3f> state) = 0;
 
     // getter method for the system's state
-    std::vector<Vector3f> getState() { return m_vVecState; };
+    virtual std::vector<Vector3f> getState() { return m_vVecState; };
 
     // setter method for the system's state
-    void setState(const std::vector<Vector3f>  & newState) { m_vVecState = newState; };
+    virtual void setState(const std::vector<Vector3f>  & newState) { m_vVecState = newState; };
 
  protected:
     std::vector<Vector3f> m_vVecState;

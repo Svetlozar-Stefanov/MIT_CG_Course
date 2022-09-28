@@ -267,8 +267,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    integrator = /*argv[1][0]*/ 'e';
-    h = /*(float)atof(argv[2])*/ 0.0001f;
+    integrator = /*argv[1][0]*/ 't';
+    h = /*(float)atof(argv[2])*/ 0.001f;
     printf("Using Integrator %c with time step %.4f\n", integrator, h);
 
 

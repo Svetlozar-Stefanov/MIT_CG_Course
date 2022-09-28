@@ -5,7 +5,7 @@
 #include "vertexrecorder.h"
 
 // TODO adjust to number of particles.
-const int NUM_PARTICLES = 4;
+const int NUM_PARTICLES = 3;
 const float G = 0.5f;
 const float DRAG = 1.0f;
 
@@ -34,27 +34,24 @@ PendulumSystem::PendulumSystem()
 		part.vel = Vector3f(0, rand_uniform(-5, 5), 0);
 		part.mass = rand_uniform(0.5, 1);
 		particles.push_back(part);
-
-		Spring sp;
-		sp.restLen = 0.5f;
-		sp.sturdiness = 2;
-		sp.index = i;
-
-		particles[i+1].springs.push_back(sp);
 	}
 
-	Particle end2;
+	/*Particle end2;
 	end2.pos = Vector3f(rand_uniform(-3, 3), 2, 0);
 	end2.vel = Vector3f(0, 0, 0);
 	end2.mass = 0;
-	particles.push_back(end2);
+	particles.push_back(end2);*/
 
-	Spring sp;
-	sp.restLen = 0.5f;
-	sp.sturdiness = 2;
-	sp.index = 5;
+	for (int i = 0; i < particles.size() - 1; i++)
+	{
+		Spring newSpring;
+		newSpring.index1 = i;
+		newSpring.index2 = i + 1;
 
-	particles[4].springs.push_back(sp);
+		newSpring.restLen = 0.2f;
+		newSpring.sturdiness = 0.5f;
+		springs.push_back(newSpring);
+	}
 
 	updateState();
 }
@@ -82,11 +79,35 @@ void PendulumSystem::updateState()
 
 std::vector<Vector3f> PendulumSystem::evalF(std::vector<Vector3f> state)
 {
-	std::vector<Vector3f> f;
+	std::vector<Vector3f> f(state.size());
 	// TODO 4.1: implement evalF
 	//  - gravity
 	//  - viscous drag
 	//  - springs
+	for (int i = 0; i < springs.size(); i++)
+	{
+		Spring sp = springs[i];
+
+		int pi1 = sp.index1 * 2;
+		int pi2 = sp.index2 * 2;
+
+		Vector3f pos1 = state[pi1];
+		Vector3f vel1 = state[pi1 + VEL_OFFSET];
+		Particle part1 = particles[sp.index1];
+
+		Vector3f pos2 = state[pi2];
+		Vector3f vel2 = state[pi2 + VEL_OFFSET];
+		Particle part2 = particles[sp.index2];
+
+		Vector3f D = pos1 - pos2;
+		Vector3f sF = -sp.sturdiness * (D.abs() - sp.restLen) * (D / D.abs());
+		f[pi1 + VEL_OFFSET] += sF;
+		D = pos2 - pos1;
+		sF = -sp.sturdiness * (D.abs() - sp.restLen) * (D / D.abs());
+		f[pi2 + VEL_OFFSET] += sF;
+		
+	}
+
 	for (int i = 0; i < state.size(); i += 2)
 	{
 		Vector3f pos = state[i];
@@ -94,22 +115,19 @@ std::vector<Vector3f> PendulumSystem::evalF(std::vector<Vector3f> state)
 		Particle part = particles[i / 2];
 
 		Vector3f F = Vector3f(0, part.mass * -G, 0) + vel * -DRAG;
-
-		for (Spring sp : part.springs)
-		{
-			Vector3f D = pos - state[sp.index * 2];
-			F += -sp.sturdiness * (D.abs() - sp.restLen) * (D / D.abs());
-		}
+		f[i + VEL_OFFSET] += F;
 
 		if (part.mass != 0.0f)
 		{
-			F = F / part.mass;
+			f[i + VEL_OFFSET] = f[i + VEL_OFFSET] / part.mass;
+		}
+		else
+		{
+			f[i + VEL_OFFSET] = Vector3f(0, 0, 0);
 		}
 
-		f.push_back(vel);
-		f.push_back(F);
+		f[i] = vel;
 	}
-
 
 	return f;
 }

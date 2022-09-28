@@ -20,6 +20,7 @@ public:
 
 private:
     std::vector<Particle> particles;
+    std::vector<Spring> springs;
     void updateState();
     // inherits 
     // std::vector<Vector3f> m_vVecState;

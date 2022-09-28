@@ -12,14 +12,14 @@ float rand_uniform(float low, float hi);
 struct Spring {
     float restLen;
     float sturdiness;
-    int index;
+    int index1;
+    int index2;
 };
 
 struct Particle {
     Vector3f pos;
     Vector3f vel;
     float mass;
-    std::vector<Spring> springs;
 };
 
 struct GLProgram;

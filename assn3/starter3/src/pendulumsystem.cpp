@@ -7,7 +7,7 @@
 // TODO adjust to number of particles.
 const int NUM_PARTICLES = 3;
 const float G = 0.5f;
-const float DRAG = 1.0f;
+const float DRAG = 0.4f;
 
 const int VEL_OFFSET = 1;
 
@@ -49,7 +49,7 @@ PendulumSystem::PendulumSystem()
 		newSpring.index2 = i + 1;
 
 		newSpring.restLen = 0.2f;
-		newSpring.sturdiness = 0.5f;
+		newSpring.sturdiness = 1;
 		springs.push_back(newSpring);
 	}
 
@@ -64,6 +64,7 @@ void PendulumSystem::setState(const std::vector<Vector3f>& newState)
 	{
 		particles[index].pos = m_vVecState[i];
 		particles[index].vel = m_vVecState[i + VEL_OFFSET];
+		index++;
 	}
 }
 
@@ -142,9 +143,10 @@ void PendulumSystem::draw(GLProgram& gl)
 
 	// example code. Replace with your own drawing  code
 
-	for (int i = 0; i < m_vVecState.size(); i += 2)
+	for (int i = 0; i < particles.size(); i++)
 	{
-		Vector3f pos = m_vVecState[i];
+		Particle pt = particles[i];
+		Vector3f pos = pt.pos;
 		gl.updateModelMatrix(Matrix4f::translation(pos));
 		drawSphere(0.075f, 10, 10);
 	}

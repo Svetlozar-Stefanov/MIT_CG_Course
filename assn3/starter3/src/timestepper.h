@@ -21,12 +21,13 @@ class ForwardEuler : public TimeStepper
 
 class Trapezoidal : public TimeStepper
 {
-	std::vector<Vector3f> evalFOStep(ParticleSystem * particleSystem, float stepSize);
 	void takeStep(ParticleSystem* particleSystem, float stepSize) override;
+	std::vector<Vector3f> evalFOStep(ParticleSystem* particleSystem, float stepSize);
 };
 
 class RK4 : public TimeStepper
 {
+	std::vector<Vector3f> scale(const std::vector<Vector3f> &state, float scale, const std::vector<Vector3f> &f);
 	void takeStep(ParticleSystem* particleSystem, float stepSize) override;
 };
 

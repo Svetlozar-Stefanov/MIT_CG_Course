@@ -57,8 +57,32 @@ void Trapezoidal::takeStep(ParticleSystem* particleSystem, float stepSize)
 	particleSystem->setState(newState);
 }
 
+std::vector<Vector3f> RK4::scale(const std::vector<Vector3f>& state, float scale, const std::vector<Vector3f>& f)
+{
+	std::vector<Vector3f> newState;
+
+	for (int i = 0; i < state.size(); i++)
+	{
+		newState.push_back(state[i] + scale * f[i]);
+	}
+
+	return newState;
+}
 
 void RK4::takeStep(ParticleSystem* particleSystem, float stepSize)
 {
+	std::vector<Vector3f> currentState = particleSystem->getState();
+
+	std::vector<Vector3f> k1 = particleSystem->evalF(currentState);
+	std::vector<Vector3f> k2 = particleSystem->evalF(scale(currentState, stepSize/2, k1));
+	std::vector<Vector3f> k3 = particleSystem->evalF(scale(currentState, stepSize / 2, k2));
+	std::vector<Vector3f> k4 = particleSystem->evalF(scale(currentState, stepSize, k3));
+
+	for (int i = 0; i < currentState.size(); i++)
+	{
+		currentState[i] += (stepSize / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]);
+	}
+
+	particleSystem->setState(currentState);
 }
 

@@ -31,7 +31,7 @@ PendulumSystem::PendulumSystem()
 	{
 		Particle part;
 		part.pos = Vector3f(rand_uniform((float)i, 3), 0, 0);
-		part.vel = Vector3f(0, rand_uniform(-5, 5), 0);
+		part.vel = Vector3f(0, rand_uniform(-5, 0), 0);
 		part.mass = rand_uniform(0.5, 1);
 		particles.push_back(part);
 	}

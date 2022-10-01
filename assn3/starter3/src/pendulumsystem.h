@@ -18,7 +18,7 @@ public:
 
     void draw(GLProgram&, bool showSprings);
 
-private:
+protected:
     std::vector<Particle> particles;
     std::vector<Spring> springs;
     void updateState();

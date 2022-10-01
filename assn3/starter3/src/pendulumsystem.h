@@ -16,7 +16,7 @@ public:
 
     void setState(const std::vector<Vector3f>& newState) override;
 
-    void draw(GLProgram&);
+    void draw(GLProgram&, bool showSprings);
 
 private:
     std::vector<Particle> particles;

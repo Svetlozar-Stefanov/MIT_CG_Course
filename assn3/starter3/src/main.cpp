@@ -57,6 +57,8 @@ SimpleSystem* simpleSystem;
 PendulumSystem* pendulumSystem;
 ClothSystem* clothSystem;
 
+bool showSprings = false;
+
 // Function implementations
 static void keyCallback(GLFWwindow* window, int key,
     int scancode, int action, int mods)
@@ -84,6 +86,11 @@ static void keyCallback(GLFWwindow* window, int key,
         freeSystem();
         initSystem();
         resetTime();
+        break;
+    }
+    case 'I':
+    {
+        showSprings = !showSprings;
         break;
     }
     default:
@@ -226,7 +233,7 @@ void drawSystem()
     gl.updateLight(LIGHT_POS, LIGHT_COLOR.xyz()); // once per frame
 
     simpleSystem->draw(gl);
-    pendulumSystem->draw(gl);
+    pendulumSystem->draw(gl, showSprings);
     clothSystem->draw(gl);
 
     // set uniforms for floor
